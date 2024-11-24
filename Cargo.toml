@@ -10,3 +10,4 @@ smallvec = { version = "1.13.2", optional = true }
 default = ["reclaim-memory"]
 reclaim-memory = []
 smallvec = ["dep:smallvec"]
+timing = []

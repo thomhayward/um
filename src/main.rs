@@ -1,5 +1,6 @@
 #[cfg(feature = "smallvec")]
 use smallvec::SmallVec;
+#[cfg(feature = "timing")]
 use std::time::Instant;
 
 #[cfg(feature = "smallvec")]
@@ -178,6 +179,9 @@ impl Um {
 
     /// Begins the spin-cycle of the universal machine.
     pub fn run(mut self) {
+        #[cfg(feature = "timing")]
+        let start = Instant::now();
+
         loop {
             match self.ops[self.program_counter as usize] {
                 // Operator #0. Conditional Move.
@@ -357,6 +361,9 @@ impl Um {
 
             self.program_counter += 1;
         }
+
+        #[cfg(feature = "timing")]
+        eprintln!("um complete: {:?}", start.elapsed());
     }
 
     /// Loads the value from the specified register.
@@ -419,6 +426,7 @@ impl Um {
         }
     }
 
+    #[cold]
     #[inline(never)]
     fn panic(&self) -> ! {
         panic!(
