@@ -361,30 +361,34 @@ impl Um {
 
     /// Loads the value from the specified register.
     fn load_register(&self, index: Register) -> Platter {
-        debug_assert!(index < 8, "register index out of bounds");
+        assert!(index < 8, "register index out of bounds");
         self.registers[index as usize]
     }
 
     /// Saves a value to the specified register.
     fn save_register(&mut self, index: Register, value: Platter) {
-        debug_assert!(index < 8, "register index out of bounds");
+        assert!(index < 8, "register index out of bounds");
         self.registers[index as usize] = value;
     }
 
     fn load_memory(&self, block: Platter, offset: Platter) -> Platter {
-        debug_assert!((block as usize) < self.memory.len());
-        debug_assert!((offset as usize) < self.memory[block as usize].len());
+        assert!(
+            (block as usize) < self.memory.len()
+                && (offset as usize) < self.memory[block as usize].len()
+        );
         self.memory[block as usize][offset as usize]
     }
 
     fn store_memory(&mut self, block: Platter, offset: Platter, value: Platter) {
-        debug_assert!((block as usize) < self.memory.len());
-        debug_assert!((offset as usize) < self.memory[block as usize].len());
+        assert!(
+            (block as usize) < self.memory.len()
+                && (offset as usize) < self.memory[block as usize].len()
+        );
         self.memory[block as usize][offset as usize] = value;
     }
 
     fn duplicate_memory(&mut self, block: Platter) -> &[Platter] {
-        debug_assert!((block as usize) < self.memory.len());
+        assert!((block as usize) < self.memory.len());
         self.memory[0] = self.memory[block as usize].clone();
         &self.memory[0]
     }
@@ -407,7 +411,7 @@ impl Um {
     }
 
     fn free_memory(&mut self, block: Platter) {
-        debug_assert!((block as usize) < self.memory.len());
+        assert!((block as usize) < self.memory.len());
         #[cfg(feature = "reclaim-memory")]
         {
             self.free_blocks.push(block);
