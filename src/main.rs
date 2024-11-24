@@ -136,15 +136,18 @@ impl Um {
     pub fn from_bytes(program: impl AsRef<[u8]>) -> Self {
         let bytes = program.as_ref();
         let mut program = Vec::with_capacity(bytes.len().div_ceil(size_of::<Platter>()));
-        for word in bytes.chunks(size_of::<Platter>()) {
-            let value = Platter::from_be_bytes(match word {
-                [a, b, c, d] => [*a, *b, *c, *d],
-                [a, b, c] => [*a, *b, *c, 0],
-                [a, b] => [*a, *b, 0, 0],
-                [a] => [*a, 0, 0, 0],
-                _ => unreachable!(),
-            });
-            program.push(value);
+
+        // Split the program into platters.
+        let mut chunks = bytes.chunks_exact(size_of::<Platter>());
+        for word in &mut chunks {
+            program.push(Platter::from_be_bytes([word[0], word[1], word[2], word[3]]));
+        }
+
+        if !chunks.remainder().is_empty() {
+            eprintln!(
+                "WARNING: program may be corrupt; {} bytes remain after platter conversion.",
+                chunks.remainder().len()
+            );
         }
 
         Self::new(program)
