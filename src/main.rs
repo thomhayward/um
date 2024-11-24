@@ -73,6 +73,7 @@ enum Op {
         a: Register,
         value: u32,
     },
+    IllegalInstruction,
 }
 
 impl From<Platter> for Op {
@@ -100,7 +101,7 @@ impl From<Platter> for Op {
                 let value = value & 0x01ffffff;
                 Self::Orthography { a, value }
             }
-            _ => Self::Halt,
+            _ => Self::IllegalInstruction,
         }
     }
 }
@@ -340,6 +341,8 @@ impl Um {
                 Op::Orthography { a, value } => {
                     self.save_register(a, value);
                 }
+
+                Op::IllegalInstruction => self.panic(),
             }
 
             self.program_counter += 1;
@@ -400,5 +403,13 @@ impl Um {
             self.free_blocks.push(block);
             self.memory[block as usize] = vec![];
         }
+    }
+
+    #[inline(never)]
+    fn panic(&self) -> ! {
+        panic!(
+            "universal machine failure: instruction: {:08x}, program_counter: {:08x}, registers: {:08x?}",
+            self.memory[0][self.program_counter as usize], self.program_counter, self.registers
+        )
     }
 }
