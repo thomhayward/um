@@ -20,75 +20,75 @@ fn main() {
 }
 
 type Platter = u32;
-type Register = u8;
+type Parameter = u8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Op {
+enum Operation {
     ConditionalMove {
-        a: Register,
-        b: Register,
-        c: Register,
+        a: Parameter,
+        b: Parameter,
+        c: Parameter,
     },
     ArrayIndex {
-        a: Register,
-        b: Register,
-        c: Register,
+        a: Parameter,
+        b: Parameter,
+        c: Parameter,
     },
     ArrayAmendment {
-        a: Register,
-        b: Register,
-        c: Register,
+        a: Parameter,
+        b: Parameter,
+        c: Parameter,
     },
     Addition {
-        a: Register,
-        b: Register,
-        c: Register,
+        a: Parameter,
+        b: Parameter,
+        c: Parameter,
     },
     Multiplication {
-        a: Register,
-        b: Register,
-        c: Register,
+        a: Parameter,
+        b: Parameter,
+        c: Parameter,
     },
     Division {
-        a: Register,
-        b: Register,
-        c: Register,
+        a: Parameter,
+        b: Parameter,
+        c: Parameter,
     },
     NotAnd {
-        a: Register,
-        b: Register,
-        c: Register,
+        a: Parameter,
+        b: Parameter,
+        c: Parameter,
     },
     Halt,
     Allocation {
-        b: Register,
-        c: Register,
+        b: Parameter,
+        c: Parameter,
     },
     Abandonment {
-        c: Register,
+        c: Parameter,
     },
     Output {
-        c: Register,
+        c: Parameter,
     },
     Input {
-        c: Register,
+        c: Parameter,
     },
     LoadProgram {
-        b: Register,
-        c: Register,
+        b: Parameter,
+        c: Parameter,
     },
     Orthography {
-        a: Register,
+        a: Parameter,
         value: u32,
     },
     IllegalInstruction,
 }
 
-impl From<Platter> for Op {
+impl From<Platter> for Operation {
     fn from(value: Platter) -> Self {
-        let a = ((value >> 6) & 0x07) as Register;
-        let b = ((value >> 3) & 0x07) as Register;
-        let c = ((value >> 0) & 0x07) as Register;
+        let a = ((value >> 6) & 0x07) as Parameter;
+        let b = ((value >> 3) & 0x07) as Parameter;
+        let c = ((value >> 0) & 0x07) as Parameter;
 
         match value & 0xf0000000 {
             0x00000000 => Self::ConditionalMove { a, b, c },
@@ -105,7 +105,7 @@ impl From<Platter> for Op {
             0xb0000000 => Self::Input { c },
             0xc0000000 => Self::LoadProgram { b, c },
             0xd0000000 => {
-                let a = ((value >> 25) & 0x07) as Register;
+                let a = ((value >> 25) & 0x07) as Parameter;
                 let value = value & 0x01ffffff;
                 Self::Orthography { a, value }
             }
@@ -114,8 +114,10 @@ impl From<Platter> for Op {
     }
 }
 
-fn decode_ops(ops: &[Platter]) -> Vec<Op> {
-    ops.iter().map(|encoded| Op::from(*encoded)).collect()
+fn decode_ops(ops: &[Platter]) -> Vec<Operation> {
+    ops.iter()
+        .map(|&encoded| Operation::from(encoded))
+        .collect()
 }
 
 #[derive(Default)]
@@ -128,13 +130,13 @@ pub struct Um {
     memory: Vec<Vec<Platter>>,
     #[cfg(feature = "reclaim-memory")]
     free_blocks: Vec<Platter>,
-    ops: Vec<Op>,
+    ops: Vec<Operation>,
     stdin: Option<Box<dyn std::io::Read>>,
     stdout: Option<Box<dyn std::io::Write>>,
 }
 
 impl Um {
-    /// Construct a new Universal Machine with the specified program.
+    /// Initialise a Universal Machine with the specified program scroll.
     pub fn new(program: Vec<Platter>) -> Self {
         let ops = decode_ops(&program);
         Self {
@@ -144,7 +146,8 @@ impl Um {
         }
     }
 
-    /// Construct a new Universal Machine from a program represented in bytes.
+    /// Initialise a Universal Machine with a program read from a legacy
+    /// unsigned 8-bit character scroll.
     pub fn from_bytes(program: impl AsRef<[u8]>) -> Self {
         let bytes = program.as_ref();
         let mut program = Vec::with_capacity(bytes.len().div_ceil(size_of::<Platter>()));
@@ -165,7 +168,7 @@ impl Um {
         Self::new(program)
     }
 
-    /// Sets the output for the univeral machine.
+    /// Sets the output for the universal machine.
     pub fn stdout(mut self, stdout: impl std::io::Write + 'static) -> Self {
         self.stdout.replace(Box::new(stdout));
         self
@@ -188,7 +191,7 @@ impl Um {
                 //
                 // The register A receives the value in register B,
                 // unless the register C contains 0.
-                Op::ConditionalMove { a, b, c } => {
+                Operation::ConditionalMove { a, b, c } => {
                     if self.load_register(c) != 0 {
                         self.save_register(a, self.load_register(b));
                     }
@@ -198,7 +201,7 @@ impl Um {
                 //
                 // The register A receives the value stored at offset
                 // in register C in the array identified by B.
-                Op::ArrayIndex { a, b, c } => {
+                Operation::ArrayIndex { a, b, c } => {
                     let block = self.load_register(b);
                     let offset = self.load_register(c);
                     self.save_register(a, self.load_memory(block, offset));
@@ -208,7 +211,7 @@ impl Um {
                 //
                 // The array identified by A is amended at the offset
                 // in register B to store the value in register C.
-                Op::ArrayAmendment { a, b, c } => {
+                Operation::ArrayAmendment { a, b, c } => {
                     let block = self.load_register(a);
                     let offset = self.load_register(b);
                     let value = self.load_register(c);
@@ -219,7 +222,7 @@ impl Um {
                 //
                 // The register A receives the value in register B plus
                 // the value in register C, modulo 2^32.
-                Op::Addition { a, b, c } => {
+                Operation::Addition { a, b, c } => {
                     self.save_register(
                         a,
                         self.load_register(b).wrapping_add(self.load_register(c)),
@@ -230,7 +233,7 @@ impl Um {
                 //
                 // The register A receives the value in register B times
                 // the value in register C, modulo 2^32.
-                Op::Multiplication { a, b, c } => {
+                Operation::Multiplication { a, b, c } => {
                     self.save_register(
                         a,
                         self.load_register(b).wrapping_mul(self.load_register(c)),
@@ -242,7 +245,7 @@ impl Um {
                 // The register A receives the value in register B
                 // divided by the value in register C, if any, where
                 // each quantity is treated as an unsigned 32 bit number.
-                Op::Division { a, b, c } => {
+                Operation::Division { a, b, c } => {
                     self.save_register(
                         a,
                         self.load_register(b).wrapping_div(self.load_register(c)),
@@ -255,14 +258,14 @@ impl Um {
                 // either register B or register C has a 0 bit in that
                 // position.  Otherwise the bit in register A receives
                 // the 0 bit.
-                Op::NotAnd { a, b, c } => {
+                Operation::NotAnd { a, b, c } => {
                     self.save_register(a, !(self.load_register(b) & self.load_register(c)));
                 }
 
                 // Operator #7. Halt.
                 //
                 // The universal machine stops computation.
-                Op::Halt => break,
+                Operation::Halt => break,
 
                 // Operator #8. Allocation.
                 //
@@ -272,7 +275,7 @@ impl Um {
                 // holding the value 0. A bit pattern not consisting of
                 // exclusively the 0 bit, and that identifies no other
                 // active allocated array, is placed in the B register.
-                Op::Allocation { b, c } => {
+                Operation::Allocation { b, c } => {
                     let length = self.load_register(c);
                     let index = self.allocate_memory(length);
                     self.save_register(b, index);
@@ -282,7 +285,7 @@ impl Um {
                 //
                 // The array identified by the register C is abandoned.
                 // Future allocations may then reuse that identifier.
-                Op::Abandonment { c } => {
+                Operation::Abandonment { c } => {
                     let block = self.load_register(c);
                     self.free_memory(block);
                 }
@@ -292,7 +295,7 @@ impl Um {
                 // The value in the register C is displayed on the console
                 // immediately. Only values between and including 0 and 255
                 // are allowed.
-                Op::Output { c } => {
+                Operation::Output { c } => {
                     let value = self.load_register(c);
                     if let Some(stdout) = self.stdout.as_mut() {
                         let buffer = [(value & 0xff) as u8];
@@ -308,7 +311,7 @@ impl Um {
                 // If the end of input has been signaled, then the
                 // register C is endowed with a uniform value pattern
                 // where every place is pregnant with the 1 bit.
-                Op::Input { c } => {
+                Operation::Input { c } => {
                     if let Some(stdin) = self.stdin.as_mut() {
                         let mut buffer = vec![0];
                         match stdin.read_exact(&mut buffer) {
@@ -333,7 +336,7 @@ impl Um {
                 // The '0' array shall be the most sublime choice for
                 // loading, and shall be handled with the utmost
                 // velocity.
-                Op::LoadProgram { b, c } => {
+                Operation::LoadProgram { b, c } => {
                     let block = self.load_register(b);
 
                     // Source array is always copied to array[0], but there
@@ -352,11 +355,11 @@ impl Um {
                 //
                 // The value indicated is loaded into the register A
                 // forthwith.
-                Op::Orthography { a, value } => {
+                Operation::Orthography { a, value } => {
                     self.save_register(a, value);
                 }
 
-                Op::IllegalInstruction => self.panic(),
+                Operation::IllegalInstruction => self.panic(),
             }
 
             self.program_counter += 1;
@@ -367,13 +370,13 @@ impl Um {
     }
 
     /// Loads the value from the specified register.
-    fn load_register(&self, index: Register) -> Platter {
+    fn load_register(&self, index: Parameter) -> Platter {
         assert!(index < 8, "register index out of bounds");
         self.registers[index as usize]
     }
 
     /// Saves a value to the specified register.
-    fn save_register(&mut self, index: Register, value: Platter) {
+    fn save_register(&mut self, index: Parameter, value: Platter) {
         assert!(index < 8, "register index out of bounds");
         self.registers[index as usize] = value;
     }
