@@ -1,11 +1,9 @@
-#[cfg(feature = "smallvec")]
 use smallvec::SmallVec;
 use std::io::{Read, Write};
 #[cfg(feature = "timing")]
 use std::time::Instant;
 use um::{Operation, Parameter, Platter};
 
-#[cfg(feature = "smallvec")]
 const SMALLVEC_SIZE: usize = 24;
 
 fn main() {
@@ -51,10 +49,7 @@ impl_into_index!(Parameter);
 pub struct Um<'a> {
     program_counter: Platter,
     registers: [Platter; 8],
-    #[cfg(feature = "smallvec")]
     memory: Vec<SmallVec<[Platter; SMALLVEC_SIZE]>>,
-    #[cfg(not(feature = "smallvec"))]
-    memory: Vec<Vec<Platter>>,
     #[cfg(feature = "reclaim-memory")]
     free_blocks: Vec<Platter>,
     ops: Vec<Operation>,
@@ -366,13 +361,7 @@ impl<'a> Um<'a> {
         )
     }
 
-    #[cfg(feature = "smallvec")]
     fn new_block(len: usize) -> SmallVec<[Platter; SMALLVEC_SIZE]> {
         smallvec::smallvec![0; len]
-    }
-
-    #[cfg(not(feature = "smallvec"))]
-    fn new_block(len: usize) -> Vec<Platter> {
-        vec![0; len]
     }
 }

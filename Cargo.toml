@@ -4,10 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-smallvec = { version = "1.13.2", optional = true }
+smallvec = { version = "1.13.2" }
 
 [features]
-default = ["reclaim-memory", "smallvec"]
+default = ["reclaim-memory"]
 reclaim-memory = []
-smallvec = ["dep:smallvec"]
 timing = []
