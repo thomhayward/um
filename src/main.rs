@@ -1,5 +1,6 @@
 #[cfg(feature = "smallvec")]
 use smallvec::SmallVec;
+use std::io::{Read, Write};
 #[cfg(feature = "timing")]
 use std::time::Instant;
 use um::{Operation, Parameter, Platter};
@@ -15,13 +16,13 @@ fn main() {
     }
 
     Um::from_bytes(program)
-        .stdout(std::io::stdout())
-        .stdin(std::io::stdin())
+        .stdout(&mut std::io::stdout())
+        .stdin(&mut std::io::stdin())
         .run();
 }
 
 #[derive(Default)]
-pub struct Um {
+pub struct Um<'a> {
     program_counter: Platter,
     registers: [Platter; 8],
     #[cfg(feature = "smallvec")]
@@ -31,11 +32,11 @@ pub struct Um {
     #[cfg(feature = "reclaim-memory")]
     free_blocks: Vec<Platter>,
     ops: Vec<Operation>,
-    stdin: Option<Box<dyn std::io::Read>>,
-    stdout: Option<Box<dyn std::io::Write>>,
+    stdin: Option<&'a mut dyn Read>,
+    stdout: Option<&'a mut dyn Write>,
 }
 
-impl Um {
+impl<'a> Um<'a> {
     /// Initialise a Universal Machine with the specified program scroll.
     pub fn new(program: Vec<Platter>) -> Self {
         let ops = um::decode_ops(&program);
@@ -69,14 +70,14 @@ impl Um {
     }
 
     /// Sets the output for the universal machine.
-    pub fn stdout(mut self, stdout: impl std::io::Write + 'static) -> Self {
-        self.stdout.replace(Box::new(stdout));
+    pub fn stdout<T: Write>(mut self, stdout: &'a mut T) -> Self {
+        self.stdout.replace(stdout);
         self
     }
 
     /// Sets the input for the universal machine.
-    pub fn stdin(mut self, stdin: impl std::io::Read + 'static) -> Self {
-        self.stdin.replace(Box::new(stdin));
+    pub fn stdin<T: Read>(mut self, stdin: &'a mut T) -> Self {
+        self.stdin.replace(stdin);
         self
     }
 
