@@ -107,34 +107,38 @@ impl<'a> Um<'a> {
         #[cfg(feature = "timing")]
         let start = Instant::now();
 
-        loop {
-            match self.ops[self.program_counter as usize] {
-                Operation::ConditionalMove { a, b, c } => self.conditional_move(a, b, c),
-                Operation::ArrayIndex { a, b, c } => self.array_index(a, b, c),
-                Operation::ArrayAmendment { a, b, c } => self.array_amendment(a, b, c),
-                Operation::Addition { a, b, c } => self.addition(a, b, c),
-                Operation::Multiplication { a, b, c } => self.multiplication(a, b, c),
-                Operation::Division { a, b, c } => self.division(a, b, c),
-                Operation::NotAnd { a, b, c } => self.not_and(a, b, c),
-                Operation::Halt => break,
-                Operation::Allocation { b, c } => self.allocation(b, c),
-                Operation::Abandonment { c } => self.abandonment(c),
-                Operation::Output { c } => self.output(c),
-                Operation::Input { c } => self.input(c),
-                Operation::LoadProgram { b, c } => {
-                    self.load_program(b, c);
-                    continue;
-                }
-                Operation::Orthography { a, value } => self.orthography(a, value),
-                Operation::IllegalInstruction => self.illegal_instruction(),
-            }
-            self.program_counter += 1;
-        }
+        while self.step() {}
 
         #[cfg(feature = "timing")]
         eprintln!("um complete: {:?}", start.elapsed());
 
         self
+    }
+
+    /// Steps one instruction.
+    pub fn step(&mut self) -> bool {
+        match self.ops[self.program_counter as usize] {
+            Operation::ConditionalMove { a, b, c } => self.conditional_move(a, b, c),
+            Operation::ArrayIndex { a, b, c } => self.array_index(a, b, c),
+            Operation::ArrayAmendment { a, b, c } => self.array_amendment(a, b, c),
+            Operation::Addition { a, b, c } => self.addition(a, b, c),
+            Operation::Multiplication { a, b, c } => self.multiplication(a, b, c),
+            Operation::Division { a, b, c } => self.division(a, b, c),
+            Operation::NotAnd { a, b, c } => self.not_and(a, b, c),
+            Operation::Halt => return false,
+            Operation::Allocation { b, c } => self.allocation(b, c),
+            Operation::Abandonment { c } => self.abandonment(c),
+            Operation::Output { c } => self.output(c),
+            Operation::Input { c } => self.input(c),
+            Operation::LoadProgram { b, c } => {
+                self.load_program(b, c);
+                return true;
+            }
+            Operation::Orthography { a, value } => self.orthography(a, value),
+            Operation::IllegalInstruction => self.illegal_instruction(),
+        }
+        self.program_counter += 1;
+        true
     }
 
     /// Loads the value from the specified register.
