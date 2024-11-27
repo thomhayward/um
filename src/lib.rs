@@ -68,7 +68,7 @@ impl From<Platter> for Operation {
     fn from(value: Platter) -> Self {
         let a = ((value >> 6) & 0x07) as Parameter;
         let b = ((value >> 3) & 0x07) as Parameter;
-        let c = ((value >> 0) & 0x07) as Parameter;
+        let c = (value & 0x07) as Parameter;
 
         match value & 0xf0000000 {
             0x00000000 => Self::ConditionalMove { a, b, c },

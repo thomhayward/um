@@ -244,7 +244,7 @@ impl<'a> Um<'a> {
                     // is no point copying array[0] to array[0].
                     if block != 0 {
                         let duplicated = self.duplicate_memory(block);
-                        let ops = um::decode_ops(&duplicated);
+                        let ops = um::decode_ops(duplicated);
                         self.ops = ops;
                     }
 
