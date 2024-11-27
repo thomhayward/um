@@ -50,7 +50,6 @@ pub struct Um<'a> {
     program_counter: Platter,
     registers: [Platter; 8],
     memory: Vec<SmallVec<[Platter; SMALLVEC_SIZE]>>,
-    #[cfg(feature = "reclaim-memory")]
     free_blocks: Vec<Platter>,
     ops: Vec<Operation>,
     stdin: Option<&'a mut dyn Read>,
@@ -269,13 +268,6 @@ impl<'a> Um<'a> {
         &self.memory[0]
     }
 
-    #[cfg(not(feature = "reclaim-memory"))]
-    fn allocate_memory(&mut self, length: Platter) -> Platter {
-        self.memory.push(Self::new_block(length.into_index()));
-        (self.memory.len() - 1) as Platter
-    }
-
-    #[cfg(feature = "reclaim-memory")]
     fn allocate_memory(&mut self, length: Platter) -> Platter {
         if let Some(index) = self.free_blocks.pop() {
             self.memory[index.into_index()] = Self::new_block(length.into_index());
@@ -288,11 +280,8 @@ impl<'a> Um<'a> {
 
     fn free_memory(&mut self, block: Platter) {
         assert!(block.into_index() < self.memory.len());
-        #[cfg(feature = "reclaim-memory")]
-        {
-            self.free_blocks.push(block);
-            self.memory[block.into_index()] = Self::new_block(0);
-        }
+        self.free_blocks.push(block);
+        self.memory[block.into_index()] = Self::new_block(0);
     }
 
     fn new_block(len: usize) -> SmallVec<[Platter; SMALLVEC_SIZE]> {
