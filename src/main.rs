@@ -82,7 +82,7 @@ impl<'a> Um<'a> {
     }
 
     /// Begins the spin-cycle of the universal machine.
-    pub fn run(mut self) {
+    pub fn run(mut self) -> Self {
         #[cfg(feature = "timing")]
         let start = Instant::now();
 
@@ -268,6 +268,8 @@ impl<'a> Um<'a> {
 
         #[cfg(feature = "timing")]
         eprintln!("um complete: {:?}", start.elapsed());
+
+        self
     }
 
     /// Loads the value from the specified register.
