@@ -21,6 +21,32 @@ fn main() {
         .run();
 }
 
+/// Lossless conversion to `usize`.
+///
+/// This should only be implemented on types which can be losslessly
+/// cast to a `usize`.
+trait IntoIndex: Sized + Copy {
+    fn into_index(self) -> usize;
+}
+
+macro_rules! impl_into_index {
+    ($t:ty) => {
+        impl IntoIndex for $t {
+            fn into_index(self) -> usize {
+                self as usize
+            }
+        }
+    };
+}
+
+#[cfg(target_pointer_width = "16")]
+compile_error!("16 bit architectures are unsupported");
+
+// usize *may* be 16 bits, so only implement if it is 32 or 64 bits.
+#[cfg(any(target_pointer_width = "64", target_pointer_width = "32"))]
+impl_into_index!(Platter);
+impl_into_index!(Parameter);
+
 #[derive(Default)]
 pub struct Um<'a> {
     program_counter: Platter,
@@ -275,60 +301,59 @@ impl<'a> Um<'a> {
     /// Loads the value from the specified register.
     fn load_register(&self, index: Parameter) -> Platter {
         assert!(index < 8, "register index out of bounds");
-        self.registers[index as usize]
+        self.registers[index.into_index()]
     }
 
     /// Saves a value to the specified register.
     fn save_register(&mut self, index: Parameter, value: Platter) {
         assert!(index < 8, "register index out of bounds");
-        self.registers[index as usize] = value;
+        self.registers[index.into_index()] = value;
     }
 
     fn load_memory(&self, block: Platter, offset: Platter) -> Platter {
-        assert!(
-            (block as usize) < self.memory.len()
-                && (offset as usize) < self.memory[block as usize].len()
-        );
-        self.memory[block as usize][offset as usize]
+        let block = block.into_index();
+        let offset = offset.into_index();
+        assert!(block < self.memory.len() && offset < self.memory[block].len());
+        self.memory[block][offset]
     }
 
     fn store_memory(&mut self, block: Platter, offset: Platter, value: Platter) {
-        assert!(
-            (block as usize) < self.memory.len()
-                && (offset as usize) < self.memory[block as usize].len()
-        );
-        self.memory[block as usize][offset as usize] = value;
+        let block = block.into_index();
+        let offset = offset.into_index();
+        assert!(block < self.memory.len() && offset < self.memory[block].len());
+        self.memory[block][offset] = value
     }
 
     fn duplicate_memory(&mut self, block: Platter) -> &[Platter] {
-        assert!((block as usize) < self.memory.len());
-        self.memory[0] = self.memory[block as usize].clone();
+        let block = block.into_index();
+        assert!(block < self.memory.len());
+        self.memory[0] = self.memory[block].clone();
         &self.memory[0]
     }
 
     #[cfg(not(feature = "reclaim-memory"))]
     fn allocate_memory(&mut self, length: Platter) -> Platter {
-        self.memory.push(Self::new_block(length as usize));
+        self.memory.push(Self::new_block(length.into_index()));
         (self.memory.len() - 1) as Platter
     }
 
     #[cfg(feature = "reclaim-memory")]
     fn allocate_memory(&mut self, length: Platter) -> Platter {
         if let Some(index) = self.free_blocks.pop() {
-            self.memory[index as usize] = Self::new_block(length as usize);
+            self.memory[index.into_index()] = Self::new_block(length.into_index());
             index as Platter
         } else {
-            self.memory.push(Self::new_block(length as usize));
+            self.memory.push(Self::new_block(length.into_index()));
             (self.memory.len() - 1) as Platter
         }
     }
 
     fn free_memory(&mut self, block: Platter) {
-        assert!((block as usize) < self.memory.len());
+        assert!(block.into_index() < self.memory.len());
         #[cfg(feature = "reclaim-memory")]
         {
             self.free_blocks.push(block);
-            self.memory[block as usize] = Self::new_block(0);
+            self.memory[block.into_index()] = Self::new_block(0);
         }
     }
 
@@ -337,7 +362,7 @@ impl<'a> Um<'a> {
     fn panic(&self) -> ! {
         panic!(
             "universal machine failure: instruction: {:08x}, program_counter: {:08x}, registers: {:08x?}",
-            self.memory[0][self.program_counter as usize], self.program_counter, self.registers
+            self.memory[0][self.program_counter.into_index()], self.program_counter, self.registers
         )
     }
 
