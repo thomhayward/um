@@ -2,10 +2,16 @@
 name = "um"
 version = "0.1.0"
 edition = "2021"
+default-run = "um"
+rust-version = "1.74.1"
 
 [dependencies]
 smallvec = { version = "1.13.2" }
+logos = { version = "0.14.2" }
 
 [features]
 default = []
-timing = []
+
+[profile.release]
+lto = "fat"
+codegen-units = 1

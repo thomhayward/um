@@ -6,5 +6,5 @@ An implementation of the UM-32 "Universal Machine" as described by the [Cult of 
 
 Run the benchmark:
 ```sh
-; cargo run --release --features timing -- files/sandmark.umz
+; cargo run --release -- files/sandmark.umz
 ```
