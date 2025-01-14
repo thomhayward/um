@@ -1,4 +1,4 @@
-use crate::{Platter, Register};
+use crate::Register;
 use logos::{Lexer, Logos};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -43,7 +43,7 @@ pub enum Token<'source> {
     Here,
 
     #[regex(r#"(0x[a-fA-F0-9]+)|([0-9]+)"#, lex_number)]
-    Number(Platter),
+    Number(u32),
 
     #[token("\"", lex_string_literal)]
     String(&'source str),
@@ -61,10 +61,10 @@ fn lex_label<'source>(lex: &mut Lexer<'source, Token<'source>>) -> &'source str 
     &slice[..slice.len() - 1]
 }
 
-fn lex_number<'source>(lex: &mut Lexer<'source, Token<'source>>) -> Platter {
+fn lex_number<'source>(lex: &mut Lexer<'source, Token<'source>>) -> u32 {
     let slice = &lex.slice();
     if slice.starts_with("0x") {
-        Platter::from_str_radix(slice.trim_start_matches("0x"), 16).unwrap()
+        u32::from_str_radix(slice.trim_start_matches("0x"), 16).unwrap()
     } else {
         slice.parse().unwrap()
     }

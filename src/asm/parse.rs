@@ -1,5 +1,5 @@
 use super::Token;
-use crate::{Platter, Register};
+use crate::Register;
 use logos::{Logos, Source};
 use std::{borrow::Cow, collections::HashMap, iter::Peekable, ops::Range};
 
@@ -312,7 +312,7 @@ pub enum Instruction<'s> {
     /// Operation #13.
     LiteralMove {
         destination: Register,
-        literal: Platter,
+        literal: u32,
     },
     Load {
         destination: Register,
@@ -660,7 +660,7 @@ where
     }
 }
 
-fn consume_number<'s, I>(tokens: &mut I) -> Result<(Platter, Range<usize>), Error>
+fn consume_number<'s, I>(tokens: &mut I) -> Result<(u32, Range<usize>), Error>
 where
     I: Iterator<Item = (Token<'s>, Range<usize>)>,
 {

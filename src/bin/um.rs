@@ -1,5 +1,5 @@
 use std::{path::Path, time::Instant};
-use um::{Platter, Um};
+use um::Um;
 
 fn main() {
     let mut program = Vec::new();
@@ -32,7 +32,7 @@ fn main() {
     }
 }
 
-fn load_program(path: &Path) -> std::io::Result<Vec<Platter>> {
+fn load_program(path: &Path) -> std::io::Result<Vec<u32>> {
     match path.extension().map(|ext| ext.as_encoded_bytes()) {
         Some(b"uasm") | Some(b"asm") => {
             let source = std::fs::read_to_string(path)?;
@@ -41,8 +41,8 @@ fn load_program(path: &Path) -> std::io::Result<Vec<Platter>> {
         _ => {
             let program = std::fs::read(path)?;
             Ok(program
-                .chunks_exact(std::mem::size_of::<Platter>())
-                .map(|pl| Platter::from_be_bytes(pl.try_into().unwrap()))
+                .chunks_exact(std::mem::size_of::<u32>())
+                .map(|word| u32::from_be_bytes(word.try_into().unwrap()))
                 .collect())
         }
     }

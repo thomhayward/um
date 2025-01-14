@@ -1,7 +1,7 @@
 mod lexer;
 mod parse;
 
-use crate::{Platter, Register};
+use crate::Register;
 use lexer::Token;
 use parse::{Instruction, Node, NodeType, PragmaType};
 use std::collections::HashMap;
@@ -12,7 +12,7 @@ enum Section {
     Data,
 }
 
-pub fn assemble<'s>(source: &'s str) -> Vec<Platter> {
+pub fn assemble<'s>(source: &'s str) -> Vec<u32> {
     let parsed = parse::parse("", source).unwrap();
 
     let mut sections: HashMap<Section, Vec<&Node<'s>>> = HashMap::new();
@@ -145,7 +145,7 @@ pub fn assemble<'s>(source: &'s str) -> Vec<Platter> {
                     Section::Data => data_offset + *offset,
                 };
 
-                0xd0000000 | destination.encode_a_ortho() | encode_literal(value as Platter)
+                0xd0000000 | destination.encode_a_ortho() | encode_literal(value as u32)
             }
             Instruction::LiteralMove {
                 destination,
@@ -165,7 +165,7 @@ pub fn assemble<'s>(source: &'s str) -> Vec<Platter> {
             let encoded = match &pragma.payload {
                 PragmaType::WideString { value } => {
                     for byte in value.as_bytes() {
-                        program.push(*byte as Platter);
+                        program.push(*byte as u32);
                     }
                     Some(0) // terminating byte.
                 }
@@ -181,13 +181,13 @@ pub fn assemble<'s>(source: &'s str) -> Vec<Platter> {
     program
 }
 
-fn encode_literal(value: Platter) -> Platter {
-    const LITERAL_MAX: Platter = 0x1ffffff;
+fn encode_literal(value: u32) -> u32 {
+    const LITERAL_MAX: u32 = 0x1ffffff;
     assert!(value <= LITERAL_MAX, "literal value exceeds available bits. value: {value} (0x{value:x}), max: {LITERAL_MAX} (0x{LITERAL_MAX:x})");
-    value as Platter
+    value as u32
 }
 
-fn encode_standard(op: Platter, a: &Register, b: &Register, c: &Register) -> Platter {
+fn encode_standard(op: u32, a: &Register, b: &Register, c: &Register) -> u32 {
     (op << 28) | a.encode_a() | b.encode_b() | c.encode_c()
 }
 
@@ -210,11 +210,11 @@ mod tests {
         assert_eq!(ops[0], Operation::Orthography { a: R0, value: 1 });
 
         let mut platters = program.into_iter().skip(1);
-        assert_eq!(platters.next(), Some('H' as Platter));
-        assert_eq!(platters.next(), Some('e' as Platter));
-        assert_eq!(platters.next(), Some('l' as Platter));
-        assert_eq!(platters.next(), Some('l' as Platter));
-        assert_eq!(platters.next(), Some('o' as Platter));
+        assert_eq!(platters.next(), Some('H' as u32));
+        assert_eq!(platters.next(), Some('e' as u32));
+        assert_eq!(platters.next(), Some('l' as u32));
+        assert_eq!(platters.next(), Some('l' as u32));
+        assert_eq!(platters.next(), Some('o' as u32));
         assert_eq!(platters.next(), Some(0));
         assert_eq!(platters.next(), None);
     }

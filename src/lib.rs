@@ -7,8 +7,6 @@ use std::{
 pub mod asm;
 pub mod str;
 
-pub type Platter = u32;
-
 /// A reference to a register of the UM-32.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Register {
@@ -32,28 +30,28 @@ impl std::fmt::Display for Register {
 impl Register {
     /// Encodes the register as the 'a' parameter of an encoded
     /// instruction (bits 6..=8).
-    fn encode_a(self) -> Platter {
-        ((self as Platter) & 0x7) << 6
+    fn encode_a(self) -> u32 {
+        ((self as u32) & 0x7) << 6
     }
 
     /// Encodes the register as the 'b' parameter of an encoded
     /// instruction (bits 3..=5).
-    fn encode_b(self) -> Platter {
-        ((self as Platter) & 0x7) << 3
+    fn encode_b(self) -> u32 {
+        ((self as u32) & 0x7) << 3
     }
 
     /// Encodes the register as the 'c' parameter of an encoded
     /// instruction (bits 0..=2).
-    fn encode_c(self) -> Platter {
-        (self as Platter) & 0x7
+    fn encode_c(self) -> u32 {
+        (self as u32) & 0x7
     }
 
     /// Encodes the register as the 'a' parameter of an `Orthography`
     /// operation.
     ///
     /// This is *only* valid for `Orthography` operations.
-    fn encode_a_ortho(self) -> Platter {
-        ((self as Platter) & 0x7) << 25
+    fn encode_a_ortho(self) -> u32 {
+        ((self as u32) & 0x7) << 25
     }
 
     fn from_u8(index: u8) -> Self {
@@ -73,10 +71,10 @@ impl Register {
 
 /// A set of registers.
 #[derive(Debug, Default)]
-struct Page([Platter; 8]);
+struct Page([u32; 8]);
 
 impl ops::Index<Register> for Page {
-    type Output = Platter;
+    type Output = u32;
     #[inline(always)]
     fn index(&self, index: Register) -> &Self::Output {
         &self.0[index as usize]
@@ -90,8 +88,8 @@ impl ops::IndexMut<Register> for Page {
     }
 }
 
-impl From<[Platter; 8]> for Page {
-    fn from(value: [Platter; 8]) -> Self {
+impl From<[u32; 8]> for Page {
+    fn from(value: [u32; 8]) -> Self {
         Self(value)
     }
 }
@@ -234,9 +232,8 @@ enum Operation {
     IllegalInstruction,
 }
 
-impl From<Platter> for Operation {
-    #[inline]
-    fn from(value: Platter) -> Self {
+impl From<u32> for Operation {
+    fn from(value: u32) -> Self {
         let a = Register::from_u8(((value >> 6) & 0x07) as u8);
         let b = Register::from_u8(((value >> 3) & 0x07) as u8);
         let c = Register::from_u8((value & 0x07) as u8);
@@ -264,7 +261,7 @@ impl From<Platter> for Operation {
     }
 }
 
-fn decode_ops(ops: &[Platter]) -> Vec<Operation> {
+fn decode_ops(ops: &[u32]) -> Vec<Operation> {
     ops.iter()
         .map(|&encoded| Operation::from(encoded))
         .collect()
@@ -295,18 +292,18 @@ compile_error!("16 bit architectures are unsupported");
 
 // usize *may* be 16 bits, so only implement if it is 32 or 64 bits.
 #[cfg(any(target_pointer_width = "64", target_pointer_width = "32"))]
-impl_into_index!(Platter);
+impl_into_index!(u32);
 
 #[derive(Default)]
 pub struct Um<'a> {
-    pub program_counter: Platter,
+    pub program_counter: u32,
     registers: Page,
     /// Program memory, modelled as a `Vec` of `SmallVec`.
     ///
     /// Memory allocations greater than `SMALLVEC_SIZE` will incur a memory
     /// indirection penalty for every memory access within that block.
-    memory: Vec<SmallVec<[Platter; SMALLVEC_SIZE]>>,
-    free_blocks: Vec<Platter>,
+    memory: Vec<SmallVec<[u32; SMALLVEC_SIZE]>>,
+    free_blocks: Vec<u32>,
     /// Partially decoded operations cache.
     ops: Vec<Operation>,
     stdin: Option<&'a mut dyn Read>,
@@ -315,7 +312,7 @@ pub struct Um<'a> {
 
 impl<'a> Um<'a> {
     /// Initialise a Universal Machine with the specified program scroll.
-    pub fn new(program: Vec<Platter>) -> Self {
+    pub fn new(program: Vec<u32>) -> Self {
         let ops = decode_ops(&program);
         Self {
             memory: vec![program.into()],
@@ -328,13 +325,12 @@ impl<'a> Um<'a> {
     /// unsigned 8-bit character scroll.
     pub fn from_bytes(program: impl AsRef<[u8]> + 'a) -> Self {
         fn inner<'a>(bytes: &[u8]) -> Um<'a> {
-            let mut program =
-                Vec::with_capacity(bytes.len().div_ceil(std::mem::size_of::<Platter>()));
+            let mut program = Vec::with_capacity(bytes.len().div_ceil(std::mem::size_of::<u32>()));
 
             // Split the program into platters.
-            let mut chunks = bytes.chunks_exact(std::mem::size_of::<Platter>());
+            let mut chunks = bytes.chunks_exact(std::mem::size_of::<u32>());
             for word in &mut chunks {
-                program.push(Platter::from_be_bytes(unsafe {
+                program.push(u32::from_be_bytes(unsafe {
                     // SAFETY: The `chunks_exact` iterator will *always* emit
                     // a slice of the correct length.
                     word.try_into().unwrap_unchecked()
@@ -431,12 +427,12 @@ impl<'a> Um<'a> {
     // }
 
     /// Loads the value from the specified register.
-    fn load_register(&self, register: Register) -> Platter {
+    fn load_register(&self, register: Register) -> u32 {
         self.registers[register]
     }
 
     /// Saves a value to the specified register.
-    fn save_register(&mut self, register: Register, value: Platter) {
+    fn save_register(&mut self, register: Register, value: u32) {
         self.registers[register] = value;
     }
 
@@ -499,10 +495,10 @@ impl<'a> Um<'a> {
             let mut buffer = vec![0];
             match stdin.read_exact(&mut buffer) {
                 Ok(()) => self.save_register(c, buffer[0] as u32),
-                Err(_) => self.save_register(c, Platter::MAX),
+                Err(_) => self.save_register(c, u32::MAX),
             }
         } else {
-            self.save_register(c, Platter::MAX);
+            self.save_register(c, u32::MAX);
         }
     }
 
@@ -520,7 +516,7 @@ impl<'a> Um<'a> {
         self.program_counter = self.load_register(c);
     }
 
-    fn orthography(&mut self, a: Register, value: Platter) {
+    fn orthography(&mut self, a: Register, value: u32) {
         self.save_register(a, value);
     }
 
@@ -535,14 +531,14 @@ impl<'a> Um<'a> {
         )
     }
 
-    fn load_memory(&self, block: Platter, offset: Platter) -> Platter {
+    fn load_memory(&self, block: u32, offset: u32) -> u32 {
         let block = block.into_index();
         let offset = offset.into_index();
         assert!(block < self.memory.len() && offset < self.memory[block].len());
         self.memory[block][offset]
     }
 
-    fn store_memory(&mut self, block: Platter, offset: Platter, value: Platter) {
+    fn store_memory(&mut self, block: u32, offset: u32, value: u32) {
         let block = block.into_index();
         let offset = offset.into_index();
         assert!(block < self.memory.len() && offset < self.memory[block].len());
@@ -552,7 +548,7 @@ impl<'a> Um<'a> {
     /// Duplicates a block of memory.
     ///
     /// The block is copied to the first block of memory.
-    fn duplicate_memory(&mut self, block: Platter) -> &[Platter] {
+    fn duplicate_memory(&mut self, block: u32) -> &[u32] {
         let block = block.into_index();
         assert!(block < self.memory.len());
         self.memory[0] = self.memory[block].clone();
@@ -560,18 +556,18 @@ impl<'a> Um<'a> {
     }
 
     /// Allocates a block of memory of the specified length.
-    fn allocate_memory(&mut self, length: Platter) -> Platter {
+    fn allocate_memory(&mut self, length: u32) -> u32 {
         if let Some(index) = self.free_blocks.pop() {
             self.memory[index.into_index()] = Self::new_block(length.into_index());
-            index as Platter
+            index as u32
         } else {
             self.memory.push(Self::new_block(length.into_index()));
-            (self.memory.len() - 1) as Platter
+            (self.memory.len() - 1) as u32
         }
     }
 
     /// Frees a block of memory.
-    fn free_memory(&mut self, block: Platter) {
+    fn free_memory(&mut self, block: u32) {
         assert!(block.into_index() < self.memory.len());
         self.free_blocks.push(block);
         self.memory[block.into_index()] = Self::new_block(0);
@@ -580,7 +576,7 @@ impl<'a> Um<'a> {
     /// Creates a new block of memory.
     ///
     /// The block is initialised with `len` zeroes.
-    fn new_block(len: usize) -> SmallVec<[Platter; SMALLVEC_SIZE]> {
+    fn new_block(len: usize) -> SmallVec<[u32; SMALLVEC_SIZE]> {
         smallvec::smallvec![0; len]
     }
 }
