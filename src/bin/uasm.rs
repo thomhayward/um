@@ -41,10 +41,7 @@ fn load_program(path: &Path) -> std::io::Result<Vec<u32>> {
         }
         _ => {
             let program = std::fs::read(path)?;
-            Ok(program
-                .chunks_exact(std::mem::size_of::<u32>())
-                .map(|word| u32::from_be_bytes(word.try_into().unwrap()))
-                .collect())
+            Ok(um::bytes_to_program(&program).unwrap())
         }
     }
 }

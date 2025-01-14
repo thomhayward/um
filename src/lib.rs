@@ -7,6 +7,8 @@ use std::{
 pub mod asm;
 pub mod str;
 
+const WORD_LEN: usize = std::mem::size_of::<u32>();
+
 /// A reference to a register of the UM-32.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Register {
@@ -267,6 +269,23 @@ fn decode_ops(ops: &[u32]) -> Vec<Operation> {
         .collect()
 }
 
+#[derive(Debug)]
+pub struct InvalidProgram;
+
+/// Converts a byte slice to a program.
+///
+/// Returns `None` if the byte slice is not a multiple of 4 bytes in length.
+pub fn bytes_to_program(bytes: &[u8]) -> Result<Vec<u32>, InvalidProgram> {
+    if bytes.len().rem_euclid(WORD_LEN) != 0 {
+        return Err(InvalidProgram);
+    }
+
+    Ok(bytes
+        .chunks_exact(WORD_LEN)
+        .map(|word| u32::from_be_bytes(word.try_into().unwrap()))
+        .collect())
+}
+
 const SMALLVEC_SIZE: usize = 24;
 
 /// Lossless conversion to `usize`.
@@ -319,35 +338,6 @@ impl<'a> Um<'a> {
             ops,
             ..Default::default()
         }
-    }
-
-    /// Initialise a Universal Machine with a program read from a legacy
-    /// unsigned 8-bit character scroll.
-    pub fn from_bytes(program: impl AsRef<[u8]> + 'a) -> Self {
-        fn inner<'a>(bytes: &[u8]) -> Um<'a> {
-            let mut program = Vec::with_capacity(bytes.len().div_ceil(std::mem::size_of::<u32>()));
-
-            // Split the program into platters.
-            let mut chunks = bytes.chunks_exact(std::mem::size_of::<u32>());
-            for word in &mut chunks {
-                program.push(u32::from_be_bytes(unsafe {
-                    // SAFETY: The `chunks_exact` iterator will *always* emit
-                    // a slice of the correct length.
-                    word.try_into().unwrap_unchecked()
-                }));
-            }
-
-            if !chunks.remainder().is_empty() {
-                eprintln!(
-                    "WARNING: program may be corrupt; {} bytes remain after platter conversion.",
-                    chunks.remainder().len()
-                );
-            }
-
-            Um::new(program)
-        }
-
-        inner(program.as_ref())
     }
 
     /// Sets the output for the universal machine.
