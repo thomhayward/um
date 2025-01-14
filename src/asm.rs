@@ -184,7 +184,7 @@ pub fn assemble<'s>(source: &'s str) -> Vec<u32> {
 fn encode_literal(value: u32) -> u32 {
     const LITERAL_MAX: u32 = 0x1ffffff;
     assert!(value <= LITERAL_MAX, "literal value exceeds available bits. value: {value} (0x{value:x}), max: {LITERAL_MAX} (0x{LITERAL_MAX:x})");
-    value as u32
+    value
 }
 
 fn encode_standard(op: u32, a: &Register, b: &Register, c: &Register) -> u32 {

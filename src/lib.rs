@@ -549,7 +549,7 @@ impl<'a> Um<'a> {
     fn allocate_memory(&mut self, length: u32) -> u32 {
         if let Some(index) = self.free_blocks.pop() {
             self.memory[index.into_index()] = Self::new_block(length.into_index());
-            index as u32
+            index
         } else {
             self.memory.push(Self::new_block(length.into_index()));
             (self.memory.len() - 1) as u32
