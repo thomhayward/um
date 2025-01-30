@@ -59,3 +59,28 @@ impl Register {
         }
     }
 }
+
+/// A set of registers.
+#[derive(Debug, Default)]
+pub struct Page([u32; 8]);
+
+impl std::ops::Index<Register> for Page {
+    type Output = u32;
+    #[inline(always)]
+    fn index(&self, index: Register) -> &Self::Output {
+        &self.0[index as usize]
+    }
+}
+
+impl std::ops::IndexMut<Register> for Page {
+    #[inline(always)]
+    fn index_mut(&mut self, index: Register) -> &mut Self::Output {
+        &mut self.0[index as usize]
+    }
+}
+
+impl From<[u32; 8]> for Page {
+    fn from(value: [u32; 8]) -> Self {
+        Self(value)
+    }
+}

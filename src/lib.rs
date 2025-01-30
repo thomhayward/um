@@ -2,55 +2,14 @@ use smallvec::SmallVec;
 use std::io::{Read, Write};
 
 pub mod asm;
+mod conv;
 pub mod ops;
 pub mod reg;
 
 use ops::Operation;
-use reg::Register;
+use reg::{Page, Register};
 
-const WORD_LEN: usize = std::mem::size_of::<u32>();
-
-/// A set of registers.
-#[derive(Debug, Default)]
-struct Page([u32; 8]);
-
-impl std::ops::Index<Register> for Page {
-    type Output = u32;
-    #[inline(always)]
-    fn index(&self, index: Register) -> &Self::Output {
-        &self.0[index as usize]
-    }
-}
-
-impl std::ops::IndexMut<Register> for Page {
-    #[inline(always)]
-    fn index_mut(&mut self, index: Register) -> &mut Self::Output {
-        &mut self.0[index as usize]
-    }
-}
-
-impl From<[u32; 8]> for Page {
-    fn from(value: [u32; 8]) -> Self {
-        Self(value)
-    }
-}
-
-#[derive(Debug)]
-pub struct InvalidProgram;
-
-/// Converts a byte slice to a program.
-///
-/// Returns `None` if the byte slice is not a multiple of 4 bytes in length.
-pub fn bytes_to_program(bytes: &[u8]) -> Result<Vec<u32>, InvalidProgram> {
-    if bytes.len().rem_euclid(WORD_LEN) != 0 {
-        return Err(InvalidProgram);
-    }
-
-    Ok(bytes
-        .chunks_exact(WORD_LEN)
-        .map(|word| u32::from_be_bytes(word.try_into().unwrap()))
-        .collect())
-}
+pub use conv::*;
 
 const SMALLVEC_SIZE: usize = 24;
 
