@@ -4,7 +4,6 @@ use std::io::{Read, Write};
 pub mod asm;
 pub mod ops;
 pub mod reg;
-pub mod str;
 
 use ops::Operation;
 use reg::Register;
