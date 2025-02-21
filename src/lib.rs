@@ -15,6 +15,7 @@
 use smallvec::SmallVec;
 use std::io::{Read, Write};
 
+#[cfg(feature = "asm")]
 pub mod asm;
 pub mod conv;
 pub mod ops;
@@ -324,6 +325,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "asm")]
     fn hello_world() {
         let program = asm::assemble(include_str!("../files/hello-world.asm"));
         let mut buffer = Vec::new();
@@ -332,6 +334,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "asm")]
     fn cat() {
         let program = asm::assemble(include_str!("../files/cat.asm"));
         let input = include_bytes!("lib.rs");
