@@ -1,6 +1,6 @@
 [package]
 name = "um"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["tjh <14987462+thomhayward@users.noreply.github.com>"]
 license = "GPL-3.0-only"
