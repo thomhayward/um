@@ -16,14 +16,12 @@ use smallvec::SmallVec;
 use std::io::{Read, Write};
 
 pub mod asm;
-mod conv;
+pub mod conv;
 pub mod ops;
 pub mod reg;
 
 use ops::Operation;
 use reg::{Page, Register};
-
-pub use conv::*;
 
 const SMALLVEC_SIZE: usize = 24;
 

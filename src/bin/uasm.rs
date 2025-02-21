@@ -55,7 +55,7 @@ fn load_program(path: &Path) -> std::io::Result<Vec<u32>> {
         }
         _ => {
             let program = std::fs::read(path)?;
-            Ok(um::bytes_to_program(&program).unwrap())
+            Ok(um::conv::bytes_to_program(&program).unwrap())
         }
     }
 }
