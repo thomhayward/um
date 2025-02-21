@@ -46,8 +46,13 @@ fn main() {
     }
 }
 
+#[cfg(feature = "asm")]
 fn load_program(path: &Path) -> std::io::Result<Vec<u32>> {
     match path.extension().map(|ext| ext.as_encoded_bytes()) {
+        // In an ideal world we would just add `#[cfg(feature = "asm")]` here.
+        // Unfortunately this leads some wierd code generation fuckery which
+        // makes the version without the 'asm' feature ~1-2 seconds slower
+        // when running the sandmark program.
         Some(b"uasm") | Some(b"asm") => {
             let source = std::fs::read_to_string(path)?;
             Ok(um::asm::assemble(&source))
@@ -57,4 +62,10 @@ fn load_program(path: &Path) -> std::io::Result<Vec<u32>> {
             Ok(um::conv::bytes_to_program(&program).unwrap())
         }
     }
+}
+
+#[cfg(not(feature = "asm"))]
+fn load_program(path: &Path) -> std::io::Result<Vec<u32>> {
+    let program = std::fs::read(path)?;
+    Ok(um::conv::bytes_to_program(&program).unwrap())
 }

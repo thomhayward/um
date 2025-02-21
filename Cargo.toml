@@ -9,11 +9,18 @@ rust-version = "1.74.1"
 
 [dependencies]
 smallvec = { version = "1.13.2" }
-logos = { version = "0.14.2" }
+logos = { version = "0.14.2", optional = true }
 
 [features]
 default = []
+asm = ["dep:logos"]
 
 [profile.release]
 lto = "fat"
 codegen-units = 1
+
+
+[[bin]]
+name = "uasm"
+path = "src/bin/uasm.rs"
+required-features = ["asm"]
