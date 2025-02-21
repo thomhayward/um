@@ -206,7 +206,7 @@ mod tests {
             "#,
         );
 
-        let ops = crate::decode_ops(&program);
+        let ops = crate::ops::decode(&program);
         assert_eq!(ops[0], Operation::Orthography { a: R0, value: 1 });
 
         let mut platters = program.into_iter().skip(1);
@@ -232,7 +232,7 @@ mod tests {
             "#,
         );
 
-        let mut ops = crate::decode_ops(&program).into_iter();
+        let mut ops = crate::ops::decode(&program).into_iter();
 
         assert_eq!(ops.next(), Some(Operation::Halt));
         assert_eq!(
