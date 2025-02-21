@@ -2,6 +2,8 @@
 name = "um"
 version = "0.1.0"
 edition = "2021"
+authors = ["tjh <14987462+thomhayward@users.noreply.github.com>"]
+license = "GPL-3.0-only"
 default-run = "um"
 rust-version = "1.74.1"
 
